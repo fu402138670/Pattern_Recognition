@@ -23,9 +23,9 @@
 \usepackage{longtable}
 \usepackage{hyperref}
 \newcommand{\mytitle}{Principal Component Analysis, PCA}
-\newcommand{\myurl}{https://www.researchgate.net/publication/366501387_Principal_component_analysis}
+\newcommand{\myurl}{https://arxiv.org/pdf/1404.1100&sa=U&ved=2ahUKEwi57Mfr0ZDpAhWtF6YKHfSxAck4ChAWMAZ6BAgEEAE&usg=AOvVaw2ccduDFnmcXvF-iGE-VXIM}
 
-\title{Homework： \href{\myurl}{\mytitle}}
+\title{Homework：\mytitle}
 \author{111C51502, CY Chingyao Fu, NTUT }
 \date{Oct 2023}
 
@@ -35,8 +35,14 @@
 
 \maketitle
 
+\section*{Reference}
+\href{https://arxiv.org/pdf/1404.1100&sa=U&ved=2ahUKEwi57Mfr0ZDpAhWtF6YKHfSxAck4ChAWMAZ6BAgEEAE&usg=AOvVaw2ccduDFnmcXvF-iGE-VXIM}{A Tutorial on Principal Component Analysis}\\
+Jonathon Shlens\\
+Google Research, Mountain View, CA 94043\\
+(Dated: April 7, 2014; Version 3.02)\\
+
 \section*{Introduction}
-主成分分析（Principal Component Analysis，簡稱PCA）是一種統計方法，用於將高維數據降維，同時儘量保留原始數據中的變異信息。也就是說，尋找一組新的變量（主成分），這些變量是原始變量的線性組合，並且能夠最大程度地捕捉數據的變異。
+主成分分析（Principal Component Analysis，PCA）是一種用於現代數據分析的主要工具。它是一種簡單的、非參數的方法，用於從混亂的數據集中提取相關信息。目的是找到一個更有意義的基礎來重新表示數據集，希望這個新基礎能夠過濾掉噪聲並揭示隱藏的結構。
 
 \section{基本概念}
 \begin{itemize}
@@ -47,7 +53,8 @@
   \item 特徵值和特徵向量（Eigenvalues and Eigenvectors）：在數學上，主成分是協方差矩陣的特徵向量，而這些特徵向量對應的特徵值表示了變異的大小。  
 \end{itemize}
 
-\section{數學原理}
+\section{數學框架}
+\textbf{PCA做出一個嚴格但有力的假設：線性性。大大簡化了問題，因為它限制了潛在基礎的集合。}\\
 \begin{enumerate}
     \item 數據標準化：首先，對每個變量（特徵）進行標準化，使其均值為0，標準差為1。這是為了確保每個變量對結果的影響是一致的。
     $$Z=\frac{X-\mu}{\sigma}$$
