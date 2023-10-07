@@ -1,0 +1,392 @@
+\documentclass[11pt, a4paper]{article}
+\usepackage[scaled=.92]{helvet}
+\renewcommand{\rmdefault}{\sfdefault}
+\usepackage{amsfonts, amsmath, amssymb, amsthm}
+\usepackage[none]{hyphenat}
+\usepackage{CJKutf8}
+\usepackage[strict,autostyle]{csquotes} % smart and nestable quote marks
+\usepackage[USenglish]{babel} % American English
+\usepackage{microtype}% improve text appearance with kerning, etc
+\usepackage{datetime} % formatting of date 
+\usepackage{tabto}    % make nice tabbing
+\usepackage{hyperref} % enable hyperlinks and pdf metadata
+\usepackage[top=2cm, bottom=2cm, left=2.5cm, right=2cm]{geometry} % manually set page margins
+\usepackage{enumitem} % enumerate with [resume] option
+\usepackage{titlesec} % allow custom section fonts
+\usepackage{setspace} % custom line spacing
+\usepackage{graphicx}
+\usepackage{cuted}
+\usepackage{caption}
+\usepackage{float}
+\usepackage{placeins}
+\usepackage{longtable}
+\usepackage{hyperref}
+\usepackage{minted}
+
+\usepackage{xcolor}
+\newcommand{\mytitle}{Practice of Analyzing EO-1 Hyperion Multi-spectral Satellite Images Using PCA}
+
+\title{Homework：\mytitle}
+\author{111C51502, CY Chingyao Fu, NTUT }
+\date{Oct 2023}
+
+\begin{document}
+\setstretch{1.1}
+\begin{CJK*}{UTF8}{bsmi}
+
+\maketitle
+
+\section*{Dataset}
+\href{https://dds.cr.usgs.gov/download/eyJpZCI6NDc0MjIwNjA2LCJjb250YWN0SWQiOjI2OTA5NTc5fQ==/}{United States Geological Survey, USGS}\\
+REQUEST\_ID = "1170422008059\_20001"\\
+PRODUCT\_TYPE = "L1T"\\
+PROCESSING\_SOFTWARE = "LAS74"\\
+EPHEMERIS\_TYPE = "DEFINITIVE"\\
+SPACECRAFT\_ID = "EO1"\\
+SENSOR\_ID = "HYPERION"\\
+ACQUISITION\_DATE = 2008-02-28\\
+START\_TIME = 2008 059 02:06:19\\
+END\_TIME = 2008 059 02:10:56\\
+
+\section*{Introduction}
+近年來，遙感技術在環境監測、城市規劃以及地質調查等多個領域中發揮著日益重要的作用。
+其中已經除役的EO-1多光譜衛星上的Hyperion傳感器具有高分辨率和多波段的特點，其獲取的資料普遍受到科學界的重視。
+然而，多波段的資料同時也帶來了大量的資料處理和分析的難度，需要有效地從這些複雜數據中提取有用信息。
+報告將詳細介紹從美國地質調查局(USGS)下載EO-1衛星Hyperion傳感器所產生的242多波段圖像的過程。
+其次，將對這些波段進行堆疊操作，以形成一個完整的多維影像資料集。
+最後，運用主成分分析(PCA)方法，對綜合的多波段圖像進行降維和特徵提取。
+通過本報告，學習如何簡單和有效地處理和分析EO-1 Hyperion的多波段遙感數據。
+
+\section{主程式}
+\begin{minted}{python}
+    # pr_hw#02C_111c51502
+    # CY Chingyao Fu,
+    # AI-EMBA Program, NTUT
+    # 2023/10/07
+    
+    from make_image_file_list import make_image_file_list
+    from get_images_list import get_images_list
+    from stack_image import stack_image
+    from PCA import apply_pca_to_image
+    from visualize_pca_result import visualize_pca_result
+    from save_pca_result_to_geotiff import save_pca_result_to_geotiff
+    
+    import os
+    os.environ['PROJ_LIB'] = 'D:\\Programs\\GDAL\\bin\\proj9\\share'
+    from osgeo import gdal
+    gdal.UseExceptions()
+    
+    # 指定原始衛星圖像目錄路徑
+    # dataset_path = "D:\\CY\\Documents\\Python\\NTUT\\Pattern_Recognition\\
+                    Dataset\\EO1H1170422008059110PW_1T"
+    dataset_path = "D:\\CY\\Documents\\Python\\NTUT\\Pattern_Recognition\\
+                    Dataset\\test"
+    
+    # 建立圖像清單.txt檔
+    image_list_file_name = make_image_file_list(dataset_path)
+    print(f"The image list file name : {image_list_file_name}")
+    
+    # 讀取圖像清單
+    image_list = get_images_list(image_list_file_name)
+    print(f"The image list length: {len(image_list)}")
+    
+    # 叠加影像，結果輸出.TIF
+    stacked_filename = "stacked_hyperion_images.tif"
+    # stacked_filename = "stacked_test.tif"
+    stack_image(image_list, stacked_filename)
+    
+    # PCA主成分分析
+    n_components = 10
+    analysis_result = apply_pca_to_image(stacked_filename, n_components)
+    # analysis_result = apply_pca_to_image(stacked_filename, n_components)
+    
+    # LDA線性判別分析
+    # analysis_result = apply_lda_to_image(stacked_filename, n_components, 
+                        labels)
+    
+    # FLD Fisher's綫性判別分析
+    # analysis_result = apply_fld_to_image(stacked_filename, n_components, 
+                        labels)
+    
+    # PCA結果視覺化
+    if analysis_result is not None:
+        visualize_pca_result(analysis_result)
+    
+        dataset = gdal.Open(stacked_filename)
+        geo_transform = dataset.GetGeoTransform()
+        projection = dataset.GetProjection()
+    
+        # 保存為GeoTIFF
+        tif_file_name = "output_pca_result.tif"
+        save_pca_result_to_geotiff(analysis_result, tif_file_name, 
+                                    geo_transform, projection)
+        
+\end{minted}
+
+\section{產生波段圖像清單，儲存到檔案}
+\begin{minted}{python}
+    import os
+    from datetime import datetime  
+    
+    def make_image_file_list(dataset_path):
+        # 獲取所有 .TIF 檔案
+        tif_files = [f for f in os.listdir(dataset_path) if f.endswith('.TIF')]
+    
+        # 獲取系統的年月日時分來命名.txt檔
+        current_time = datetime.now().strftime("%Y%m%d%H%M")
+        txt_filename = f"{current_time}.txt"
+    
+        # 寫入 .txt 檔
+        with open(txt_filename, 'w') as txt_file:
+            for tif_file in tif_files:
+                txt_file.write(f"{dataset_path}\\{tif_file}\n")
+        print(f"List of {len(tif_files)} .TIF files has been saved to : 
+            {txt_filename}")
+    
+        return txt_filename
+\end{minted}
+
+\section{讀取檔案，獲取波段圖像檔案清單}
+\begin{minted}{python}
+    def get_images_list(image_list_file_name):
+    image_list = []
+
+    with open(image_list_file_name, 'r') as txt_file:
+        for line in txt_file.readlines():
+            image_list.append(line.strip())
+
+    return image_list
+\end{minted}
+
+\section{叠加影像，結果輸出.TIF}
+\begin{minted}{python}
+    import sys
+    
+    sys.path.append('D:\\Programs\\GDAL\\bin\\gdal\\python')
+    from osgeo import gdal
+    gdal.UseExceptions()
+    
+    def stack_image(tiff_files, output_filename):
+        # 讀取第一個檔案以獲取基本信息
+        first_ds = gdal.Open(tiff_files[0], gdal.GA_ReadOnly)
+        rows, cols = first_ds.RasterYSize, first_ds.RasterXSize
+        geo_transform = first_ds.GetGeoTransform()
+        proj = first_ds.GetProjectionRef()
+        first_ds = None  # 關閉數據集
+    
+        # 創建新的多波段TIFF檔案
+        driver = gdal.GetDriverByName('GTiff')
+        out_ds = driver.Create(output_filename, cols, rows, len(tiff_files), 
+                            gdal.GDT_Float32)
+        out_ds.SetGeoTransform(geo_transform)
+        out_ds.SetProjection(proj)
+    
+        # 叠加每個波段
+        for i, tiff_file in enumerate(tiff_files):
+            in_ds = gdal.Open(tiff_file, gdal.GA_ReadOnly)
+            in_band = in_ds.GetRasterBand(1)
+    
+            out_band = out_ds.GetRasterBand(i + 1)
+            out_band.WriteArray(in_band.ReadAsArray())
+    
+            in_ds = None  # 關閉數據集
+    
+            completion_percentage = ((i + 1) / len(tiff_files)) * 100
+            print("\rImage stacking completed{:.2f}%"
+                    .format(completion_percentage), end="", flush=True)
+    
+        # 保存並關閉多波段TIFF檔案
+        print("\nImage stacking completed")
+        out_ds.FlushCache()
+        out_ds = None
+\end{minted}
+
+\section{PCA主成分分析}
+\begin{minted}{python}
+    from sklearn.decomposition import PCA
+    from tqdm import tqdm
+    import joblib
+    import numpy as np
+    import sys
+    sys.path.append('D:\\Programs\\GDAL\\bin\\gdal\\python')
+    from osgeo import gdal
+    gdal.UseExceptions()
+    
+    def apply_pca_to_image(image_file_path, n_components, 
+                            temp_storage_path='temp_pca_data.joblib'):
+        # 打開GeoTIFF檔案
+        ds = gdal.Open(image_file_path)
+        if ds is None:
+            print("Could not open image file.")
+            return
+    
+        bands = ds.RasterCount
+        rows = ds.RasterYSize
+        cols = ds.RasterXSize
+        print(f"bands:{bands}, rows:{rows}, cols:{cols}")
+    
+        # 將所有波段數據存儲到一個NumPy數組中
+        img_array = np.zeros((bands, rows, cols), dtype=np.float32)
+    
+        for i in tqdm(range(1, bands + 1), desc='Reading bands', file=sys.stdout):
+            band = ds.GetRasterBand(i)
+            img_array[i - 1, :, :] = band.ReadAsArray()
+            sys.stdout.flush()
+    
+        # 保存原始數據以減少記憶體使用
+        # joblib.dump(img_array, temp_storage_path)
+    
+        # 從硬碟加載數據
+        # img_array = joblib.load(temp_storage_path)
+    
+        # 改變形狀以適用PCA
+        reshaped_img = np.reshape(img_array, (bands, -1)).T
+    
+        # 中心化數據：減去每一列的平均值
+        reshaped_img -= np.mean(reshaped_img, axis=0)
+    
+        # 執行PCA
+        print("\nPerforming PCA...")
+        sys.stdout.flush()
+        pca = PCA(n_components=n_components)
+        pca_result = pca.fit_transform(reshaped_img)
+    
+        # 保存PCA結果以減少記憶體使用
+        # joblib.dump(pca_result, 'pca_result.joblib')
+    
+        # 從硬碟加載PCA結果
+        # pca_result = joblib.load('pca_result.joblib')
+        # pca_img = np.reshape(pca_result, (rows, cols, n_components))
+    
+        # 變異比例
+        explained_variance_ratios_percent = [f"{x * 100:.4f}%" for x in 
+                                        pca.explained_variance_ratio_]
+        total_explained_variance_percent = f"{sum(pca.explained_variance_ratio_)
+                                        * 100:.4f}%"
+    
+        print("Explained Variance Ratios:", explained_variance_ratios_percent)
+        print("Total Explained Variance:", total_explained_variance_percent)
+    
+        # 將PCA結果轉換回原始的圖像形狀
+        pca_img = np.reshape(pca_result, (rows, cols, n_components))
+    
+        return pca_img
+\end{minted}
+
+\section{結果視覺化}
+\begin{minted}{python}
+    from matplotlib import pyplot as plt
+    from matplotlib.transforms import Bbox
+    
+    def visualize_pca_result(pca_result):
+        n_components = pca_result.shape[2]
+        n_components_to_show = min(10, n_components)  # 最多顯示10個主成分
+    
+        fig, axes = plt.subplots(1, n_components_to_show, 
+                                figsize=(n_components*2, 5))
+        fig.suptitle('PCA Result by 111c51502')
+    
+        for i in range(n_components_to_show):
+            ax = axes[i] if n_components_to_show > 1 else axes
+            ax.imshow(pca_result[:, :, i], cmap='gray')
+            ax.set_title(f'PC {i + 1}')
+    
+            if i == 0:  # 只在PC1上顯示X和Y軸的最大和最小刻度
+                ax.set_xticks([0, pca_result.shape[1] - 1])
+                ax.set_yticks([0, pca_result.shape[0] - 1])
+            else:
+                ax.axis('off')  # 對其它主成分隱藏軸
+    
+        plt.savefig('All_Principal_Components_test.pdf', dpi=2000)  # 保存圖像
+        plt.show()
+\end{minted}
+
+\section{存儲圖像為TIF格式}
+\begin{minted}{python}
+    import sys
+    sys.path.append('D:\\Programs\\GDAL\\bin\\gdal\\python')
+    from osgeo import gdal, osr
+    gdal.UseExceptions()
+    
+    def save_pca_result_to_geotiff(pca_result, output_filename, 
+                                    geo_transform, projection):
+        height, width, num_bands = pca_result.shape
+        driver = gdal.GetDriverByName("GTiff")
+        dataset = driver.Create(output_filename, 
+                                width, height, 
+                                num_bands, 
+                                gdal.GDT_Float32)
+        dataset.SetGeoTransform(geo_transform)
+        dataset.SetProjection(projection)
+    
+        for i in range(num_bands):
+            band = dataset.GetRasterBand(i + 1)
+            band.WriteArray(pca_result[:, :, i])
+    
+        dataset.FlushCache()
+        dataset = None
+\end{minted}
+\FloatBarrier  % 確保接下來的圖像不會被移到上面
+
+\section{執行結果}
+\begin{figure}[h!]
+    \centering
+    \includegraphics[width=1\linewidth]{PCA_Terminal.png}
+    \caption{Terminal Output.}
+    \label{fig:Terminal_output}
+\end{figure}
+
+\begin{minted}{text}
+    Explained Variance Rations:
+        PC1    99.4351%
+        PC2     0.4626%
+        PC3     0.0473%
+        PC4     0.0215%
+        PC5     0.0120%
+        PC6     0.0032%
+        PC7     0.0028%
+        PC8     0.0022%
+        PC9     0.0007%
+        PC10    0.0006%
+    Total Explained Variance: 99.9879%
+\end{minted}
+
+\begin{figure}[h!]
+    \centering
+    \makebox[\linewidth][c]{\includegraphics[width=1.25\linewidth]{PCA_Output.png}}
+    \caption{PCA Visualize Result}
+    \label{fig:PCA_output}
+\end{figure}
+
+\section{PCA圖案分析}
+透過QGIS軟件，將主成分分析(PCA)的圖像化結果與Google Map數據進行對比。更精確地進行土地覆蓋和環境分析。
+\begin{figure}[h!]
+    \centering
+    \includegraphics[width=0.8\linewidth]{observation_window.png}
+    \caption{Observation Window}
+    \label{fig:Observation_window}
+\end{figure}
+
+\begin{figure}[h!]
+    \centering
+    \includegraphics[width=0.8\linewidth]{map_with_google.png}
+    \caption{GCS Mapping with Google}
+    \label{fig:Mapping_with_google}
+\end{figure}
+
+\begin{figure}[h!]
+    \centering
+    \includegraphics[width=0.8\linewidth]{Hyperion_Image.png}
+    \caption{EO-1 Hyperion 242 Band Image}
+    \label{fig:Hyperion_image}
+\end{figure}
+
+\begin{figure}[h!]
+    \centering
+    \includegraphics[width=0.8\linewidth]{PCA_explanation.png}
+    \caption{PCA Visualization Image}
+    \label{fig:PCA_image}
+\end{figure}
+
+\end{CJK*}
+\end{document}
