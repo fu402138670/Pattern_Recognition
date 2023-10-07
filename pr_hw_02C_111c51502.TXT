@@ -388,5 +388,11 @@ END\_TIME = 2008 059 02:10:56\\
     \label{fig:PCA_image}
 \end{figure}
 
+\section{總結和討論}
+\begin{itemize}
+    \item PCA應用在非監督式學習(Unsupervised Learning)，不需要事先分類(class)和標記(Label). 
+    \item 對於分類辨識，則使用監督式學習(Supervised Learning)，輸入已經標記和分類好的圖案做機械學習，再用LDA綫性判別或FLD Fisher's綫性判別的方法做辨識。而標記也可以使用QGIS，包含形狀或點，都可以在一張多光譜圖像上標註多個類別(class)和標籤(label)完成。
+\end{itemize}
+
 \end{CJK*}
 \end{document}
