@@ -1,0 +1,169 @@
+\documentclass[11pt, a4paper]{article}
+\usepackage{helvet}
+\usepackage{amsfonts, amsmath, amssymb}%, amsthm}
+\usepackage[none]{hyphenat}
+\usepackage{CJKutf8}
+\usepackage[T1]{fontenc} % Latin Extended font
+\usepackage[strict,autostyle]{csquotes} % smart and nestable quote marks
+\usepackage[USenglish]{babel} % American English
+\usepackage{microtype}% improve text appearance with kerning, etc
+\usepackage{datetime} % formatting of date 
+\usepackage{tabto}    % make nice tabbing
+\usepackage{hyperref} % enable hyperlinks and pdf metadata
+\usepackage[top=2cm, bottom=2cm, left=2.5cm, right=2cm]{geometry} % manually set page margins
+\usepackage{enumitem} % enumerate with [resume] option
+\usepackage{titlesec} % allow custom section fonts
+\usepackage{setspace} % custom line spacing
+\usepackage{graphicx}
+\usepackage{cuted}
+\usepackage{caption}
+\usepackage{float}
+\usepackage{longtable}
+\usepackage{hyperref}
+\newcommand{\mytitle}{High Performance Computing in Earth Observation and Remote Sensing, HPC
+}
+\newcommand{\myurl}{https://arxiv.org/pdf/1404.1100&sa=U&ved=2ahUKEwi57Mfr0ZDpAhWtF6YKHfSxAck4ChAWMAZ6BAgEEAE&usg=AOvVaw2ccduDFnmcXvF-iGE-VXIM}
+
+\title{Homework：\mytitle}
+\author{111C51502, CY Chingyao Fu, NTUT }
+\date{Oct 2023}
+
+\begin{document}
+\setstretch{1.1}
+\begin{CJK*}{UTF8}{bsmi}
+
+\maketitle
+
+\section*{Introduction}
+這是圖像識別Pattern Recognization第三節課的課後作業, 主要是關於高效能運算HPC領域的一些知識和常見的字匯解釋, 包含CPU/GPU, CUDA, 記憶體架構, 高光譜影像Hyperspectral Image 和多孔徑雷達SAR等。
+
+\section*{Reference}
+\begin{itemize}
+    \item \href{https://rd.yyrcd.com/Books/2022-03-15-Programming%20Massively%20Parallel%20Processors%203rd%20Edition.pdf}{Programming Massively Parallel Processors, A Hands-on Approach}\\
+    David B. Kirk, NVIDIA Corporation\\
+    Wen-mei W. Hwu\\
+    Third Edition, Year 2017
+    \item \href{https://ia600201.us.archive.org/24/items/ComputerOrganizationAndDesign3rdEdition/-computer%20organization%20and%20design%203rd%20edition.pdf}{Computer Organization Design, THE HARDWARE/SOFTWARE INTERFACE}\\
+    David A. Patterson, University of California, Berkeley\\ 
+    John L. Hennessy, Stanford University\\
+    Year 2005
+    \item \href{https://doc.lagout.org/science/0_Computer%20Science/2_Algorithms/Hyperspectral%20Data%20Processing_%20Algorithm%20Design%20and%20Analysis%20%5BChang%202013-04-08%5D.pdf}{Hyperspectral Data Processing: Algorithm Design and Analysis}\\
+    Chein-I Chang, University of Maryland, Baltimore County(UMBC)\\
+    Year 2013
+    \item \href{https://www.google.com.tw/url?sa=t&rct=j&q=&esrc=s&source=web&cd=&ved=2ahUKEwjP_r7vuZ2CAxUl0DQHHWTnDag4ChAWegQIBRAB&url=https%3A%2F%2Fwww.researchgate.net%2Fprofile%2FAhmed-Azouz%2Fpost%2FCould_anyone_suggest_good_and_simple_reference_for_synthetic_aperture_radar_SAR%2Fattachment%2F623282a9d411a95e64e84e40%2FAS%253A1134416655056897%25401647477415675%2Fdownload%2FDigital%2BProcessing%2Bof%2BSynthetic%2BAperture%2BRadar%2BData_%2BAlgorithms%2Band%2BImplementation-Artech%2BHouse%2B%25282005%2529.pdf&usg=AOvVaw0E8kYUBTgeDQE9D739ARJA&opi=89978449}{Digital Processing of Synthetic Aperture Radar Data}\\
+    Ian G. Cumming, University of British Columbia\\
+    Frank H. Wong, University of British Columbia\\
+    Year 2005
+    \item \href{https://github.com/fu402138670/Pattern_Recognition/blob/main/pr_hw%2302C_111c51502.pdf}{Practice of Analyzing EO-1 Hyperion Multi-spectral Satellite Images Using PCA}\\
+    CY Chingyao Fu, AI EMBA Program, NTUT\\
+    Year 2023
+\end{itemize}
+
+\section{CPU and GPU}
+\begin{itemize}
+    \item CPU(Central Processing Unit, 中央處理單元)
+    \begin{itemize}
+        \item The design of a CPU is optimized for sequential code performance. It makes use of sophisticated control logic to allow instructions from a single thread to execute in parallel or even out of their sequential order while maintaining the appearance of sequential execution.
+        \item The CPUs, are designed to minimize the execution latency of a single thread. Large last-level on-chip caches are designed to capture frequently accessed data and convert some of the long-latency memory accesses into short-latency cache accesses. The arithmetic units and operand data delivery logic are also designed to minimize the effective latency of operation at the cost of increased use of chip area and power.
+        \item Memory bandwidth is another important issue. The speed of many applications is limited by the rate at which data can be delivered from the memory system into the processors.
+    \end{itemize}
+    \item GPU(Graphics Processing Unit, 圖像處理單元)
+    \begin{itemize}
+        \item The design philosophy of the GPUs has been shaped by the fast growing video game industry that exerts tremendous economic pressure for the ability to perform a massive number of floating-point calculations per video frame in advanced games. This demand motivates GPU vendors to look for ways to maximize the chip area and power budget dedicated to floating-point calculations. 
+        \item It should be clear now that GPUs are designed as parallel, throughput-oriented computing engines and they will not perform well on some tasks on which CPUs are designed to perform well. 
+        \item For programs that have one or very few threads, CPUs with lower operation latencies can achieve much higher performance than GPUs. When a program has a large number of threads, GPUs with higher execution throughput can achieve much higher performance than CPUs.
+    \end{itemize}
+\end{itemize}
+\begin{figure}[h!]
+    \centering
+    \includegraphics[width=0.7\linewidth]{CPUandGPU.PNG}
+    \caption{CPUs and GPUs have fundamentally different design philosophies}
+    \label{fig:CPUandGPU}
+\end{figure}
+\section{CUDA}
+\begin{itemize}
+    \item CUDA(Compute Unified Device Architecture)
+    \begin{itemize}
+        \item CUDA is currently the most mature framework for massively parallel computing. It is broadly used in the high-performance computing industry, with sophisticated tools such as compilers, debuggers, and profilers available on the most common operating systems. 
+        \item An important point: while our examples will mostly use CUDA C for its simplicity and ubiquity, the CUDA platform supports many languages and application programming interfaces (APIs) including C++, Python, Fortran, OpenCL, OpenACC, OpenMP, and more.
+        \item CUDA is really an architecture that supports a set of concepts for organizing and expressing massively parallel computation.
+    \end{itemize}
+\end{itemize}
+
+\section{Memory Hierarchy}
+\begin{itemize}
+    \item Structure
+    \begin{itemize}
+        \item The memory system is organized as a hierarchy: a level closer to the processor is generally a subset of any level further away, and all the data is stored at the lowest level.
+        \item Accesses that hit in the highest level of the hierarchy can be processed quickly. Accesses that miss go to lower levels of the hierarchy, which are larger but slower.
+    \end{itemize}
+    \begin{figure}[h!]
+        \centering
+        \includegraphics[width=0.75\linewidth]{memoryhierarchy.PNG}
+        \caption{The basic structure of a memory hierarchy}
+        \label{fig:memoryhierarchy}
+    \end{figure}
+    \item Performance
+    \begin{itemize}
+        \item Memory hierarchies take advantage of temporal locality by keeping more recently accessed data items closer to the processor. Memory hierarchies take advantage of spatial locality by moving blocks consisting of multiple contiguous words in memory to upper levels of the hierarchy.
+        \item If the hit rate is high enough, the memory hierarchy has an effective access time close to that of the highest (and fastest) level and a size equal to that of the lowest (and largest) level.
+    \end{itemize}
+    \item Implement and Challenge
+    \begin{itemize}
+        \item Main memory is implemented from DRAM (dynamic random access memory), while levels closer to the processor (caches) use SRAM (static random access memory).
+        \item The challenge in designing memory hierarchies to close this growing gap. All the hardware design choices for memory hierarchies have both a positive and negative effect on performance. This means that for each level of the hierarchy there is an optimal performance point per program, which must include some misses. 
+        \item How can we overcome the growing gap between processor speeds and lower levels of the hierarchy? This question is currently the topic of much research. 
+    \end{itemize}
+\end{itemize}
+
+\section{Hyperspectral Image}
+\begin{itemize}
+    \item Hyperspectral Image(高光譜影像)
+    \begin{itemize}
+        \item 高光譜影像是由數百個連續的光譜通道採集的，具有非常高的光譜解析度。這與多光譜影像(Multispectral Image)不同，後者通常只由數十個離散的光譜通道/帶採集，並具有較低的光譜解析度.
+        \item 高光譜影像是由數百個連續的光譜通道提供的光譜特性。許多感興趣的物質只能通過它們的光譜特性來探索，而不是3D空間特性.
+        \item 由於高光譜傳感器提供的非常高的光譜解析度，許多通常未知或無法通過視覺評估識別的微妙物質現在可以用於數據分析。這些應用可能包括農業、生態學、地質學、環境監測、執法、軍事和醫學診斷等.
+    \end{itemize}
+    \item 在PR\_HW02\_C已練習過高光譜影像主成分分析PCA實作. 其中取用2008年6月拍攝到台灣雪山國家公園附近的EO-1衛星242頻段的高光譜影像. 參考: \href{https://github.com/fu402138670/Pattern_Recognition/blob/main/pr_hw%2302C_111c51502.pdf}{Practice of Analyzing EO-1 Hyperion Multi-spectral Satellite Images Using PCA}
+    \begin{figure}[h!]
+        \centering
+        \includegraphics[width=1.1\linewidth]{PCA_Output.png}
+        \caption{PCA Result}
+        \label{fig:PCA}
+    \end{figure}
+    \begin{figure}[h!]
+        \centering
+        \includegraphics[width=0.9\linewidth]{PCA_explanation.png}
+        \caption{PCA Stacked Image}
+        \label{fig:PCAStackedImage}
+    \end{figure}
+\end{itemize}
+
+\section{SAR}
+\begin{itemize}
+    \item Synthetic Aperture Radar(合成孔徑雷達, SAR)
+    \begin{itemize}
+        \item Synthetic Aperture Radar (SAR) was originally developed for military purposes during World War II. Its initial purpose was to track aircraft and ships through severe weather conditions and darkness. With advancements in radio frequency (RF) technology, antennas, and more recently, digital technology, SAR has seen steady growth.
+    \end{itemize}
+    \item Fundamental Principles
+    \begin{itemize}
+        \item SAR measures the range to a target (known as a radar scatterer) via time delay and the direction of a target via antenna directivity.
+        \item Doppler shifts are used to measure the speed of a target.
+        \item By processing these Doppler shifts, fine resolution can be obtained in a direction perpendicular to the range or beam direction.
+        \item This latter concept, often credited to Carl Wiley of Goodyear Aerospace in 1951, led to the discovery that two-dimensional images could be made of the targets and of the Earth's surface.
+    \end{itemize}
+    \item Applications and Development
+    \begin{itemize}
+        \item SAR has been prominent in the remote sensing community, and there are various main SAR processing algorithms used in satellite remote sensing.
+        \item In addition to basic SAR processing algorithms, there are algorithms for determining the main Doppler parameters, the Doppler centroid, and the azimuth FM rate.
+    \end{itemize}
+    \begin{figure}[h!]
+        \centering
+        \includegraphics[width=0.8\linewidth]{Sentiel-1_SAR.jpg}
+        \caption{C-Band Synthetic Aperture Radar, or C-SAR, installed on Sentinel-1}
+        \label{fig:Sentiel-1_SAR}
+    \end{figure}
+\end{itemize}
+
+\end{CJK*}
+\end{document}
