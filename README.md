@@ -9,3 +9,4 @@
 - pr_hw#02A What is ROC <br>
 - pr_hw#02B What is PCA and its applications <br>
 - pr_hw#02C Hyperspectral with PCA analysis <br>
+- pr_hw#03A High Performance Computing in Earth Observation and Remote Sensing, HPC <br>
