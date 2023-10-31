@@ -159,7 +159,7 @@
     \end{itemize}
     \begin{figure}[h!]
         \centering
-        \includegraphics[width=0.8\linewidth]{Sentiel-1_SAR.jpg}
+        \includegraphics[width=0.8\linewidth]{Formosa9_SAR.jpg}
         \caption{C-Band Synthetic Aperture Radar, or C-SAR, installed on Sentinel-1}
         \label{fig:Sentiel-1_SAR}
     \end{figure}
